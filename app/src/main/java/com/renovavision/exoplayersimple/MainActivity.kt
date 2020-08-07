@@ -1,11 +1,16 @@
 package com.renovavision.exoplayersimple
 
+import android.app.PictureInPictureParams
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
+import android.graphics.Point
 import android.net.Uri
+import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.util.Rational
 import com.google.android.exoplayer2.*
+import com.google.android.exoplayer2.Player.*
 import com.google.android.exoplayer2.source.ProgressiveMediaSource
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory
 import com.google.android.exoplayer2.util.Util
@@ -22,6 +27,8 @@ class MainActivity : AppCompatActivity() {
 
         initExoPlayer()
         initBtnFullScreen()
+        initBtnRepeat()
+        initBtnPip()
     }
 
     private fun initExoPlayer() {
@@ -49,48 +56,95 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun initBtnFullScreen() {
-        bt_fullscreen.setOnClickListener {
+        btnFullScreen.setOnClickListener {
             when (resources.configuration.orientation) {
                 Configuration.ORIENTATION_LANDSCAPE -> {
                     requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-                    bt_fullscreen.setImageDrawable(
-                        resources.getDrawable(
-                            R.drawable.ic_fullscreen,
-                            theme
-                        )
-                    )
+                    btnFullScreen.setImage(R.drawable.ic_fullscreen)
                 }
                 else -> {
                     requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
-                    bt_fullscreen.setImageDrawable(
-                        resources.getDrawable(
-                            R.drawable.ic_fullscreen_exit,
-                            theme
-                        )
-                    )
+                    btnFullScreen.setImage(R.drawable.ic_fullscreen_exit)
                 }
             }
         }
     }
 
-    private fun getPlayerEventListener() = object : Player.EventListener {
-        override fun onPlayerStateChanged(playWhenReady: Boolean, playbackState: Int) {
-            when (playbackState) {
-                Player.STATE_BUFFERING -> progress_bar.visible()
-                Player.STATE_READY -> progress_bar.gone()
+    private fun initBtnRepeat() {
+        btnRepeat.setOnClickListener {
+            when (simpleExoPlayer.repeatMode) {
+                REPEAT_MODE_OFF -> {
+                    simpleExoPlayer.changeRepeatMode()
+                    btnRepeat.setImageWithChangedColor(R.drawable.ic_repeat, R.color.red)
+                }
+                REPEAT_MODE_ALL -> {
+                    simpleExoPlayer.changeRepeatMode()
+                    btnRepeat.setImageWithChangedColor(R.drawable.ic_repeat, R.color.light_grey)
+                }
             }
         }
+    }
+
+    private fun initBtnPip() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            btnPip.setOnClickListener {
+                val pipParams = PictureInPictureParams.Builder()
+                val display = windowManager.defaultDisplay
+                val point = Point()
+
+                display.getSize(point)
+                pipParams.setAspectRatio(Rational(point.x, point.y))
+                enterPictureInPictureMode(pipParams.build())
+            }
+        } else {
+            btnPip.gone()
+        }
+    }
+
+    override fun onPictureInPictureModeChanged(
+        isInPictureInPictureMode: Boolean,
+        newConfig: Configuration?
+    ) {
+        if (isInPictureInPictureMode) {
+            controllersLayout.gone()
+            trickPlayLayout.gone()
+        } else {
+            controllersLayout.visible()
+            trickPlayLayout.visible()
+        }
+
+        simpleExoPlayer.playWhenReady = true
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+
+        when (newConfig.orientation) {
+            Configuration.ORIENTATION_LANDSCAPE -> btnFullScreen.setImage(R.drawable.ic_fullscreen_exit)
+            else -> btnFullScreen.setImage(R.drawable.ic_fullscreen)
+        }
+    }
+
+    private fun getPlayerEventListener() = object : EventListener {
+        override fun onPlayerStateChanged(playWhenReady: Boolean, playbackState: Int) {
+            when (playbackState) {
+                STATE_BUFFERING -> progress_bar.visible()
+                STATE_READY -> progress_bar.gone()
+            }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+
+        window.hideStatusBarAndNavigationBar()
+
+        simpleExoPlayer.playWhenReady = true
     }
 
     override fun onPause() {
         super.onPause()
 
         simpleExoPlayer.playWhenReady = false
-    }
-
-    override fun onRestart() {
-        super.onRestart()
-
-        simpleExoPlayer.playWhenReady = true
     }
 }
