@@ -72,16 +72,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun initBtnRepeat() {
         btnRepeat.setOnClickListener {
-            when (simpleExoPlayer.repeatMode) {
-                REPEAT_MODE_OFF -> {
-                    simpleExoPlayer.changeRepeatMode()
-                    btnRepeat.setImageWithChangedColor(R.drawable.ic_repeat, R.color.red)
-                }
-                REPEAT_MODE_ALL -> {
-                    simpleExoPlayer.changeRepeatMode()
-                    btnRepeat.setImageWithChangedColor(R.drawable.ic_repeat, R.color.light_grey)
-                }
-            }
+            simpleExoPlayer.changeRepeatMode()
         }
     }
 
@@ -130,6 +121,17 @@ class MainActivity : AppCompatActivity() {
             when (playbackState) {
                 STATE_BUFFERING -> progress_bar.visible()
                 STATE_READY -> progress_bar.gone()
+            }
+        }
+
+        override fun onRepeatModeChanged(repeatMode: Int) {
+            when (repeatMode) {
+                REPEAT_MODE_OFF -> {
+                    btnRepeat.setImageWithChangedColor(R.drawable.ic_repeat, R.color.light_grey)
+                }
+                REPEAT_MODE_ALL, REPEAT_MODE_ONE -> {
+                    btnRepeat.setImageWithChangedColor(R.drawable.ic_repeat, R.color.red)
+                }
             }
         }
     }
